@@ -17,6 +17,7 @@ from python_runtime import (
     get_path_value,
     resolve_python_executable,
 )
+from runtime_bootstrap import bootstrap_runtime
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -83,36 +84,10 @@ def choose_node() -> str | None:
     return None
 
 
-def materialize_diagrams(tasks_path: Path, figures_dir: Path) -> list[dict]:
-    tasks = json.loads(tasks_path.read_text(encoding="utf-8"))
-    figures_dir.mkdir(parents=True, exist_ok=True)
-    results = []
-    for task in tasks:
-        output_path = figures_dir / task["output_name"]
-        result = run_command(
-            [
-                "powershell.exe",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                str(SCRIPT_DIR / "new-drawio-figure.ps1"),
-                "-OutputPath",
-                str(output_path),
-                "-Title",
-                task["slide_title"],
-                "-PageName",
-                f"Slide-{task['slide_index']:02d}",
-            ]
-        )
-        results.append({"task": task, "result": result, "output_path": str(output_path)})
-    return results
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("inputs", nargs="+", help="Input file(s) or folder(s)")
     parser.add_argument("--output-dir", required=True, help="Pipeline output directory")
-    parser.add_argument("--materialize-diagrams", action="store_true", help="Create starter drawio files from planned diagram tasks")
     parser.add_argument("--skip-build", action="store_true", help="Skip Node deck build")
     parser.add_argument("--skip-validate", action="store_true", help="Skip deck validation")
     args = parser.parse_args()
@@ -126,6 +101,12 @@ def main() -> int:
 
     inputs = [str(Path(value).expanduser().resolve()) for value in args.inputs]
     summary = {"generated_at": iso_now(), "inputs": inputs, "output_dir": str(output_dir), "steps": {}}
+
+    summary["steps"]["bootstrap"] = bootstrap_runtime()
+    if not summary["steps"]["bootstrap"]["ok"]:
+        (output_dir / "pipeline_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(output_dir / "pipeline_summary.json")
+        return 1
 
     summary["steps"]["normalize"] = run_command(
         [skill_python, str(SCRIPT_DIR / "normalize_sources.py"), *inputs, "--output-dir", str(intake_dir)]
@@ -170,11 +151,6 @@ def main() -> int:
 
     for name in ("normalized_brief.md", "source_manifest.json"):
         shutil.copy2(intake_dir / name, deck_dir / name)
-
-    if args.materialize_diagrams and (planning_dir / "diagram_tasks.json").exists():
-        summary["steps"]["materialize_diagrams"] = materialize_diagrams(
-            planning_dir / "diagram_tasks.json", deck_dir / "figures"
-        )
 
     deck_path = deck_dir / plan["deck_identity"]["output_pptx"]
     if args.skip_build:

@@ -760,7 +760,6 @@ def build_plan(brief_path: Path, manifest_path: Path) -> dict:
 
     slides = []
     trace = []
-    diagrams = []
 
     for slide_index, rule in enumerate(rules, start=1):
         slide_type = rule["slide_type"]
@@ -776,19 +775,6 @@ def build_plan(brief_path: Path, manifest_path: Path) -> dict:
         else:
             selected_sections = select_sections(sections, rule, language)
             slide = build_content_slide(rule, selected_sections, images, language)
-            if slide["visual"]["type"] in {"system_architecture", "technical_roadmap", "workflow"} and not slide["visual"].get("path"):
-                diagrams.append(
-                    {
-                        "slide_index": slide_index,
-                        "slide_key": key,
-                        "slide_title": slide["title"],
-                        "figure_type": slide["visual"]["type"],
-                        "output_name": f"slide_{slide_index:02d}_{key}.drawio",
-                        "source_ids": slide["source_ids"],
-                        "source_paths": slide["source_paths"],
-                        "instruction": f"Create a {slide['visual']['type']} figure for '{slide['title']}'." if language == "en" else f"围绕“{slide['title']}”绘制 {slide['visual']['type']} 图，并与该页结论一致。",
-                    }
-                )
         slides.append(slide)
         trace.append({"slide_index": slide_index, "slide_key": key, "slide_title": slide["title"], "source_ids": slide["source_ids"], "source_paths": slide["source_paths"]})
 
@@ -797,7 +783,7 @@ def build_plan(brief_path: Path, manifest_path: Path) -> dict:
         if slide["slide_type"] == "toc":
             slide["agenda_items"] = agenda_items
 
-    return {"generated_at": iso_now(), "deck_identity": identity, "slide_count": len(slides), "slides": slides, "source_trace": trace, "diagram_tasks": diagrams}
+    return {"generated_at": iso_now(), "deck_identity": identity, "slide_count": len(slides), "slides": slides, "source_trace": trace}
 
 
 def render_plan_md(plan: dict) -> str:
@@ -824,29 +810,6 @@ def render_plan_md(plan: dict) -> str:
             for bullet in slide["bullets"]:
                 lines.append(f"  - {bullet}")
         lines.append("")
-    lines.extend(["## Diagram Tasks", ""])
-    if not plan["diagram_tasks"]:
-        lines.append("- None")
-    else:
-        for task in plan["diagram_tasks"]:
-            lines.append(f"- Slide {task['slide_index']:02d} `{task['slide_key']}` -> {task['figure_type']} -> {task['output_name']}")
-            lines.append(f"  - {task['instruction']}")
-    lines.append("")
-    return "\n".join(lines)
-
-
-def render_diagram_md(tasks: list[dict]) -> str:
-    lines = ["# Diagram Tasks", ""]
-    if not tasks:
-        lines.append("- No diagram tasks detected.")
-        lines.append("")
-        return "\n".join(lines)
-    for task in tasks:
-        lines.append(f"## Slide {task['slide_index']:02d} - {task['slide_title']}")
-        lines.append(f"- Figure type: `{task['figure_type']}`")
-        lines.append(f"- Output name: `{task['output_name']}`")
-        lines.append(f"- Instruction: {task['instruction']}")
-        lines.append("")
     return "\n".join(lines)
 
 
@@ -866,8 +829,6 @@ def main() -> int:
     (output_dir / "deck_plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     (output_dir / "deck_plan.md").write_text(render_plan_md(plan), encoding="utf-8")
     (output_dir / "source_trace.json").write_text(json.dumps(plan["source_trace"], ensure_ascii=False, indent=2), encoding="utf-8")
-    (output_dir / "diagram_tasks.json").write_text(json.dumps(plan["diagram_tasks"], ensure_ascii=False, indent=2), encoding="utf-8")
-    (output_dir / "diagram_tasks.md").write_text(render_diagram_md(plan["diagram_tasks"]), encoding="utf-8")
     print(output_dir)
     return 0
 

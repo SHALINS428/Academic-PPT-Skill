@@ -1,10 +1,11 @@
 {
-  "name": "academic-ppt-skill",
-  "version": "0.1.0",
+  "name": "academic-ppt-plugin-runtime",
+  "version": "0.2.0",
   "private": true,
-  "description": "Dependencies for the academic-ppt Codex skill",
+  "description": "Runtime dependencies for the academic-ppt Codex plugin",
   "license": "MIT",
   "scripts": {
+    "bootstrap": "python scripts/bootstrap_runtime.py",
     "doctor": "python scripts/doctor.py",
     "doctor:full": "python scripts/doctor.py --require-full-validation"
   },

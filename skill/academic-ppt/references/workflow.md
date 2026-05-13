@@ -33,25 +33,24 @@ If you do not set this variable, the skill reuses the current Python interpreter
 ## External Tool Checklist
 
 For the core build path, no extra desktop tool is required beyond Node.js and Python.
+The plugin bootstraps its local Python and Node dependencies automatically on first run.
 
-For full validation and optional exports, install these tools manually:
+For full validation, the plugin also tries to bootstrap these tools into `.runtime/tools`:
 
 - `LibreOffice`
   Required for `render_slides.py` and `detect_font.py` because both rely on `soffice`.
 - `Poppler`
   Required for slide rasterization through `pdf2image`; `pdftoppm` must be available.
 - `fontconfig` / `fc-list`
-  Required only if you want the full font-missing and font-substitution check from `detect_font.py`.
-- `draw.io` / `diagrams.net` desktop
-  Optional. Needed only when you want to export `.drawio` sources to PNG through `scripts/export-drawio-png.ps1`.
+  Used when available. If it is missing, `detect_font.py` falls back to Python `fontTools` and local font-file scanning.
 
-Recommended verification after installation:
+Recommended verification:
 
 ```powershell
 where.exe soffice
 where.exe pdftoppm
 where.exe fc-list
-where.exe draw.io
+python scripts\doctor.py --bootstrap-tools
 ```
 
 Windows note:
@@ -60,15 +59,7 @@ Windows note:
 - If you manually double-click `soffice.exe`, or test the wrong binary from a broken working directory, you may see a misleading `bootstrap.ini` popup.
 - For this skill, trust the scripted validation path instead: `scripts/validate_deck.py` already calls LibreOffice in the supported headless mode.
 
-If `draw.io` is installed but not on `PATH`, set one of these variables before exporting diagrams:
-
-```powershell
-$env:DRAWIO_EXECUTABLE = 'D:\path\to\draw.io.exe'
-# or
-$env:DIAGRAMS_NET_EXECUTABLE = 'D:\path\to\diagrams.net.exe'
-```
-
-After tool installation, rerun:
+After tool bootstrap, rerun:
 
 ```powershell
 python scripts\validate_deck.py work\deck\academic-defense.pptx

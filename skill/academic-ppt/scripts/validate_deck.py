@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from python_runtime import build_skill_environment, resolve_python_executable
+from runtime_bootstrap import ensure_python_runtime
+from tools_bootstrap import bootstrap_tools
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -75,6 +77,11 @@ def main() -> int:
     parser.add_argument("--rendered-dir", help="Directory for rendered slide images")
     args = parser.parse_args()
 
+    python_runtime = ensure_python_runtime()
+    if not python_runtime["ok"]:
+        raise RuntimeError("Failed to bootstrap Python dependencies for academic-ppt validation.")
+    desktop_tools = bootstrap_tools(["libreoffice", "poppler", "fontconfig"], allow_fallback=True)
+
     deck_path = Path(args.deck_path).expanduser().resolve()
     scripts_dir = resolve_scripts_dir(deck_path, args.scripts_dir)
     rendered_dir = (
@@ -100,6 +107,7 @@ def main() -> int:
         "scripts_dir": str(scripts_dir),
         "rendered_dir": str(rendered_dir),
         "temp_root": str(temp_root),
+        "desktop_tool_bootstrap": desktop_tools,
         "prerequisites": summarize_prerequisites(),
         "checks": {},
     }

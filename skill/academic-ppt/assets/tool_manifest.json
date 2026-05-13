@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "platforms": {
+    "windows-x64": {
+      "tools": {
+        "libreoffice": {
+          "display_name": "LibreOffice",
+          "license": "MPL-2.0 / LGPL-3.0-or-later",
+          "source_url": "https://www.libreoffice.org/",
+          "download_url": "https://downloadarchive.documentfoundation.org/libreoffice/old/25.8.4.2/win/x86_64/LibreOffice_25.8.4.2_Win_x86-64.msi",
+          "kind": "msi-admin",
+          "sha256": "",
+          "executables": [
+            "soffice.com",
+            "soffice.exe",
+            "libreoffice.exe"
+          ],
+          "path_globs": [
+            "**/program"
+          ],
+          "required_for": [
+            "doc-conversion",
+            "ppt-render",
+            "font-resolution"
+          ]
+        },
+        "poppler": {
+          "display_name": "Poppler for Windows",
+          "license": "GPL-2.0-or-later",
+          "source_url": "https://github.com/oschwartz10612/poppler-windows",
+          "download_url": "https://github.com/oschwartz10612/poppler-windows/releases/download/v26.02.0-0/Release-26.02.0-0.zip",
+          "kind": "zip",
+          "sha256": "",
+          "executables": [
+            "pdftoppm.exe",
+            "pdfinfo.exe"
+          ],
+          "path_globs": [
+            "**/Library/bin",
+            "**/bin"
+          ],
+          "required_for": [
+            "ppt-render",
+            "image-validation"
+          ]
+        },
+        "fontconfig": {
+          "display_name": "fontconfig",
+          "license": "MIT-style",
+          "source_url": "https://www.freedesktop.org/wiki/Software/fontconfig/",
+          "download_url": "",
+          "kind": "external-or-python-fallback",
+          "sha256": "",
+          "executables": [
+            "fc-list.exe",
+            "fc-list"
+          ],
+          "path_globs": [
+            "**/bin"
+          ],
+          "fallback": "fontTools filesystem font scan",
+          "required_for": [
+            "font-resolution"
+          ]
+        }
+      }
+    }
+  }
+}

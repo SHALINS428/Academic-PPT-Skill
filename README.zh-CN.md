@@ -1,8 +1,8 @@
-# Academic PPT Skill
+# Academic PPT Plugin
 
 [English](README.md)
 
-Academic PPT Skill 是一个开源 skill 仓库，用于把本地论文材料整理成结构严谨、内容精炼、可继续编辑的学术答辩 PPT。
+Academic PPT Plugin 是一个面向 Codex 的开源插件，用来把本地论文、答辩材料和研究资料整理成结构严谨、可编辑、可复现的学术答辩 PPT。
 
 适用场景：
 
@@ -11,63 +11,55 @@ Academic PPT Skill 是一个开源 skill 仓库，用于把本地论文材料整
 - 项目中期或阶段性答辩
 - 实验室或课程学术汇报
 
-## 最终产物
+## 产出内容
 
-本仓库默认生成：
+插件默认产出：
 
 - 可编辑的 `.pptx`
 - 可重建的 JavaScript 生成源码
 - `deck_plan.md`
 - `deck_plan.json`
 - `source_manifest.json`
-- 幻灯片渲染预览图
-- 文本溢出、渲染、字体检查结果
+- 幻灯片渲染预览
+- 溢出、渲染、字体检查结果
 
-## 支持的输入
+## 支持输入
 
 - `.doc`
 - `.docx`
 - `.pdf`
 - `.md`
 - `.pptx`
-- `.png`、`.jpg`、`.jpeg`、`.svg`、`.webp` 等图片
+- 图片：`.png`、`.jpg`、`.jpeg`、`.svg`、`.webp`
 
-输入形式可以是：
-
-- 单个文件
-- 多个文件
-- 一个混合材料目录
+输入可以是单个文件、多个文件，或一个混合材料文件夹。
 
 ## 核心特点
 
-- 不是通用模板填空，而是基于内容做答辩规划
-- 通过 JavaScript 生成可编辑的 PowerPoint
-- 强调学生自己的工作、方法、证据链和创新点
-- 有原始论文图和截图时优先复用
-- 交付前做验证
-- 可以追溯回原始材料
+- 不是通用模板填空，而是按论文内容规划答辩叙事
+- 使用 JavaScript 生成可编辑 PowerPoint
+- 强调学生本人工作、方法、证据链和创新点
+- 优先复用论文原图、截图和已有材料
+- 首次运行自动补齐 Python、Node 依赖
+- 完整校验按需引导 LibreOffice、Poppler，并为字体检测提供 Python 兜底
+- 交付前执行渲染、溢出和字体校验
+- 可回溯到原始来源文件
 
-## 文档导航
+## 插件特性
 
-如果你需要：
-
-- 项目说明：当前文件
-- 英文项目说明：[README.md](README.md)
-- 英文部署文档：[DEPLOYMENT.md](DEPLOYMENT.md)
-- 中文部署文档：[DEPLOYMENT.zh-CN.md](DEPLOYMENT.zh-CN.md)
-- skill 行为和内部工作流：[skill/academic-ppt/SKILL.md](skill/academic-ppt/SKILL.md)
-- 命令级工作流参考：[skill/academic-ppt/references/workflow.md](skill/academic-ppt/references/workflow.md)
+- 仓库根目录已经包含 `.codex-plugin/plugin.json`
+- 插件首次运行会自动补齐本地 Python 和 Node 依赖
+- 完整校验会把支持的平台工具下载到 `skill/academic-ppt/.runtime/tools`
+- `fontconfig/fc-list` 不可用时，字体检测使用 `fontTools` 扫描本机字体文件
+- 插件只负责从本地材料生成学术 PPT，不包含外部图表编辑工作流
+- 需要流程、架构或路线视觉时，只在插件内部复用已有素材和 PPT 原生布局
 
 ## 部署摘要
 
-这个项目有两个实际可用的部署目标：
-
 | 模式 | 结果 | 必要工具 |
 | --- | --- | --- |
-| 最小运行 | 生成 PPT，但不做完整验证 | Python、Node.js |
-| 完整验证 | 生成 PPT，并完成渲染、图像、字体验证 | Python、Node.js、LibreOffice、Poppler、fontconfig |
-
-`draw.io` / `diagrams.net` 桌面版是可选项，只在导出 `.drawio` 为 PNG 时需要。
+| 最小运行 | 生成 PPT，但不做完整校验 | Python、Node.js |
+| 完整校验 | 生成 PPT，并完成渲染、图像、字体检查 | Python、Node.js；LibreOffice/Poppler 按需引导；fontconfig 或 Python 字体兜底 |
 
 完整部署说明见：
 
@@ -78,6 +70,8 @@ Academic PPT Skill 是一个开源 skill 仓库，用于把本地论文材料整
 
 ```text
 academic-ppt-skills/
+|- .codex-plugin/
+|  `- plugin.json
 |- README.md
 |- README.zh-CN.md
 |- DEPLOYMENT.md
@@ -98,11 +92,11 @@ academic-ppt-skills/
 
 ## 示例输出
 
-下图是基于本地研究论文 `TwiBot-20.pdf` 生成的公开示例预览图。原始论文 PDF 不包含在本仓库中。
+下面这张图是基于本地研究论文 `TwiBot-20.pdf` 生成的公开示例预览图，原始论文文件本身不包含在仓库里。
 
 ![Example montage](examples/twibot20/montage.png)
 
-示例上下文和验证说明见 [examples/twibot20/README.md](examples/twibot20/README.md)。
+示例说明见 [examples/twibot20/README.md](examples/twibot20/README.md)。
 
 ## 补充文档
 
@@ -119,6 +113,6 @@ academic-ppt-skills/
 - [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)
 - [gitbrent/PptxGenJS](https://github.com/gitbrent/PptxGenJS)
 
-## 许可证
+## 许可协议
 
 本仓库采用 MIT License，见 [LICENSE](LICENSE)。

@@ -9,6 +9,13 @@ import sys
 from pathlib import Path
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+SKILL_DIR = SCRIPT_DIR.parent
+RUNTIME_DIR = SKILL_DIR / ".runtime"
+PYTHON_VENDOR_DIR = RUNTIME_DIR / "python"
+TOOLS_DIR = RUNTIME_DIR / "tools"
+NODE_MODULES_DIR = SKILL_DIR / "node_modules"
+
 ENV_VAR_NAME = "ACADEMIC_PPT_PYTHON"
 NODE_ENV_VAR_NAME = "ACADEMIC_PPT_NODE"
 EXECUTABLE_ENV_VARS = (
@@ -18,8 +25,6 @@ EXECUTABLE_ENV_VARS = (
     "LIBREOFFICE_EXECUTABLE",
     "PDFTOPPM_EXECUTABLE",
     "FC_LIST_EXECUTABLE",
-    "DRAWIO_EXECUTABLE",
-    "DIAGRAMS_NET_EXECUTABLE",
 )
 FONTCONFIG_PATH_ENV = "FONTCONFIG_PATH"
 FONTCONFIG_FILE_ENV = "FONTCONFIG_FILE"
@@ -62,6 +67,43 @@ def _prepend_path_entries(env: dict[str, str], entries: list[str]) -> None:
     )
     alt_key = "Path" if path_key == "PATH" else "PATH"
     env[alt_key] = env[path_key]
+
+
+def python_vendor_dirs() -> list[str]:
+    candidates = [PYTHON_VENDOR_DIR]
+    lib_dir = PYTHON_VENDOR_DIR / "Lib" / "site-packages"
+    if lib_dir.exists():
+        candidates.append(lib_dir)
+    return [str(path) for path in candidates if path.exists()]
+
+
+def local_tool_bin_dirs() -> list[str]:
+    if not TOOLS_DIR.exists():
+        return []
+    candidates: list[Path] = []
+    preferred_names = {"bin", "program"}
+    for path in TOOLS_DIR.rglob("*"):
+        if not path.is_dir():
+            continue
+        contains_executable = any(
+            child.suffix.lower() == ".exe" for child in path.iterdir() if child.is_file()
+        )
+        if path.name.lower() in preferred_names or contains_executable:
+            candidates.append(path)
+    unique: list[str] = []
+    seen: set[str] = set()
+    for path in candidates:
+        resolved = str(path.resolve())
+        if resolved not in seen:
+            seen.add(resolved)
+            unique.append(resolved)
+    return unique
+
+
+def activate_local_python_runtime() -> None:
+    for entry in reversed(python_vendor_dirs()):
+        if entry not in sys.path:
+            sys.path.insert(0, entry)
 
 
 def _candidate_executable_dirs(resolved_python: str, env: dict[str, str]) -> list[str]:
@@ -123,9 +165,22 @@ def _resolve_fontconfig_defaults(env: dict[str, str]) -> None:
 def build_skill_environment(base_env: dict[str, str] | None = None) -> dict[str, str]:
     env = dict(base_env or os.environ)
     resolved_python = resolve_python_executable()
-    _prepend_path_entries(env, _candidate_executable_dirs(resolved_python, env))
+    path_entries = _candidate_executable_dirs(resolved_python, env)
+    path_entries.extend(local_tool_bin_dirs())
+    scripts_dir = PYTHON_VENDOR_DIR / "Scripts"
+    if scripts_dir.exists():
+        path_entries.append(str(scripts_dir))
+    _prepend_path_entries(env, path_entries)
     env[ENV_VAR_NAME] = resolved_python
     env["UV_PYTHON"] = resolved_python
+    vendor_dirs = python_vendor_dirs()
+    if vendor_dirs:
+        current_pythonpath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = (
+            os.pathsep.join(vendor_dirs)
+            if not current_pythonpath
+            else os.pathsep.join(vendor_dirs + [current_pythonpath])
+        )
     _resolve_fontconfig_defaults(env)
     return env
 

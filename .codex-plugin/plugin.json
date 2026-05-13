@@ -1,0 +1,41 @@
+{
+  "name": "academic-ppt",
+  "version": "0.2.0",
+  "description": "Build editable thesis defense and academic research presentations from local materials.",
+  "author": {
+    "name": "shalins",
+    "url": "https://github.com/SHALINS428"
+  },
+  "homepage": "https://github.com/SHALINS428/Academic-PPT-Skill",
+  "repository": "https://github.com/SHALINS428/Academic-PPT-Skill",
+  "license": "MIT",
+  "keywords": [
+    "codex-plugin",
+    "ppt",
+    "powerpoint",
+    "academic",
+    "thesis-defense"
+  ],
+  "skills": "./skill/",
+  "interface": {
+    "displayName": "Academic PPT",
+    "shortDescription": "Turn thesis materials into editable defense decks.",
+    "longDescription": "Academic PPT converts local thesis and research materials into concise, editable PowerPoint decks with source-aware planning, JavaScript authoring, and built-in validation.",
+    "developerName": "shalins",
+    "category": "Productivity",
+    "capabilities": [
+      "Write",
+      "Local Files",
+      "Presentations"
+    ],
+    "websiteURL": "https://github.com/SHALINS428/Academic-PPT-Skill",
+    "privacyPolicyURL": "https://github.com/SHALINS428/Academic-PPT-Skill/blob/main/README.md",
+    "termsOfServiceURL": "https://github.com/SHALINS428/Academic-PPT-Skill/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Build a thesis defense deck from these local materials.",
+      "Turn this paper and screenshots into an editable academic PPT.",
+      "Generate a concise research presentation with source traceability."
+    ],
+    "brandColor": "#163A5F"
+  }
+}

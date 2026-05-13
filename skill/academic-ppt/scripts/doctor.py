@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check whether the academic-ppt skill can run on this machine."""
+"""Check whether the academic-ppt plugin can run on this machine."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 from python_runtime import (
@@ -18,39 +17,19 @@ from python_runtime import (
     get_path_value,
     resolve_python_executable,
 )
+from runtime_bootstrap import node_missing_modules, python_missing_modules
+from tools_bootstrap import bootstrap_tools
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 MIN_PYTHON = (3, 11)
 MIN_NODE_MAJOR = 18
-PYTHON_MODULES = {
-    "mammoth": "mammoth",
-    "numpy": "numpy",
-    "pdf2image": "pdf2image",
-    "Pillow": "PIL",
-    "PyMuPDF": "fitz",
-    "python-pptx": "pptx",
-}
-NODE_MODULES = (
-    "fontkit",
-    "linebreak",
-    "mathjax-full",
-    "pptxgenjs",
-    "prismjs",
-    "skia-canvas",
-)
 
 
-def run_command(
-    command: list[str],
-    *,
-    cwd: Path | None = None,
-    env: dict[str, str] | None = None,
-) -> subprocess.CompletedProcess[str]:
+def run_command(command: list[str], *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
-        cwd=str(cwd) if cwd else None,
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -61,9 +40,8 @@ def run_command(
 
 def parse_version_numbers(raw: str) -> list[int]:
     cleaned = raw.strip().lstrip("vV")
-    parts = cleaned.split(".")
     numbers: list[int] = []
-    for part in parts:
+    for part in cleaned.split("."):
         digits = "".join(ch for ch in part if ch.isdigit())
         if not digits:
             break
@@ -140,32 +118,38 @@ def check_python(env: dict[str, str]) -> dict:
                 "version": None,
                 "version_ok": False,
                 "details": version_result.stderr.strip() or version_result.stdout.strip(),
+                "modules": {},
+                "modules_ok": False,
+                "missing_modules": [],
             }
         )
         return data
 
     parsed = json.loads(version_result.stdout)
     version_info = parsed["version_info"]
+    missing = set(python_missing_modules())
+    module_names = (
+        "mammoth",
+        "markdownify",
+        "beautifulsoup4",
+        "ebooklib",
+        "nbformat",
+        "nbconvert",
+        "requests",
+        "fonttools",
+        "numpy",
+        "pdf2image",
+        "Pillow",
+        "PyMuPDF",
+        "python-pptx",
+    )
     data["version"] = parsed["version"]
     data["version_ok"] = tuple(version_info) >= MIN_PYTHON
     data["status"] = status_from_bool(data["version_ok"])
-    data["source"] = (
-        f"env:{ENV_VAR_NAME}" if os.environ.get(ENV_VAR_NAME, "").strip() else "auto"
-    )
-
-    modules_script = (
-        "import importlib.util, json;"
-        f"modules={json.dumps(PYTHON_MODULES, ensure_ascii=False)};"
-        "results={name: bool(importlib.util.find_spec(mod)) for name, mod in modules.items()};"
-        "print(json.dumps(results, ensure_ascii=False))"
-    )
-    modules_result = run_command([python_path, "-c", modules_script], env=env)
-    if modules_result.returncode == 0:
-        modules = json.loads(modules_result.stdout)
-    else:
-        modules = {name: False for name in PYTHON_MODULES}
-    data["modules"] = modules
-    data["modules_ok"] = all(modules.values())
+    data["source"] = f"env:{ENV_VAR_NAME}" if os.environ.get(ENV_VAR_NAME, "").strip() else "auto"
+    data["modules"] = {name: name not in missing for name in module_names}
+    data["modules_ok"] = all(data["modules"].values())
+    data["missing_modules"] = sorted(missing)
     return data
 
 
@@ -173,29 +157,20 @@ def check_node(env: dict[str, str]) -> dict:
     node_info = resolve_command(env, ("node", "node.exe"), (NODE_ENV_VAR_NAME,))
     data = dict(node_info)
     if not node_info["found"]:
-        data.update({"status": "missing", "version": None, "version_ok": False})
-        data["modules_ok"] = False
+        data.update({"status": "missing", "version": None, "version_ok": False, "modules_ok": False, "missing_modules": []})
         return data
 
     version_result = run_command([str(node_info["path"]), "--version"], env=env)
     version = (version_result.stdout or version_result.stderr).strip()
     version_numbers = parse_version_numbers(version)
     version_ok = bool(version_numbers) and version_numbers[0] >= MIN_NODE_MAJOR
+    missing_modules = node_missing_modules()
     data["version"] = version
     data["version_ok"] = version_ok
     data["status"] = status_from_bool(version_ok)
-
-    node_modules_dir = SKILL_DIR / "node_modules"
-    missing_modules = [
-        module_name for module_name in NODE_MODULES if not (node_modules_dir / module_name).exists()
-    ]
     data["modules_ok"] = not missing_modules
     data["missing_modules"] = missing_modules
-    data["node_modules_dir"] = str(node_modules_dir)
-    data["node_modules_present"] = node_modules_dir.exists()
-    if missing_modules:
-        data["modules_error"] = f"Missing packages: {', '.join(missing_modules)}"
-
+    data["node_modules_dir"] = str(SKILL_DIR / "node_modules")
     npm_info = resolve_command(env, ("npm", "npm.cmd"), ())
     data["npm"] = npm_info
     return data
@@ -237,7 +212,7 @@ def build_summary(require_full_validation: bool) -> dict:
             ("SOFFICE_EXECUTABLE", "LIBREOFFICE_EXECUTABLE"),
             required_for_minimal=False,
             required_for_full_validation=True,
-            note="Needed for legacy .doc conversion and deck rendering.",
+            note="Needed for legacy .doc conversion and slide rendering.",
         ),
         "pdftoppm": check_tool(
             env,
@@ -246,7 +221,7 @@ def build_summary(require_full_validation: bool) -> dict:
             ("PDFTOPPM_EXECUTABLE",),
             required_for_minimal=False,
             required_for_full_validation=True,
-            note="Needed for slide preview rendering and validation images.",
+            note="Needed for slide preview rendering and image validation.",
         ),
         "fc-list": check_tool(
             env,
@@ -255,31 +230,26 @@ def build_summary(require_full_validation: bool) -> dict:
             ("FC_LIST_EXECUTABLE",),
             required_for_minimal=False,
             required_for_full_validation=True,
-            note="Needed for robust font missing and substitution checks.",
-        ),
-        "drawio": check_tool(
-            env,
-            "draw.io / diagrams.net",
-            ("draw.io", "drawio", "diagrams.net", "draw.io.exe", "diagrams.net.exe"),
-            ("DRAWIO_EXECUTABLE", "DIAGRAMS_NET_EXECUTABLE"),
-            required_for_minimal=False,
-            required_for_full_validation=False,
-            note="Optional. Needed only when exporting .drawio sources to PNG.",
+            note="Needed for robust font substitution checks.",
         ),
     }
 
-    minimal_ready = all(
+    minimal_run_ready = all(
         [
             python_info["found"],
             python_info["version_ok"],
-            python_info["modules_ok"],
             node_info["found"],
             node_info["version_ok"],
-            node_info["modules_ok"],
+            bool(node_info.get("npm", {}).get("found")),
         ]
     )
-    full_validation_ready = minimal_ready and all(
-        tools[name]["found"] for name in ("soffice", "pdftoppm", "fc-list")
+    fontconfig_ready = bool(tools["fc-list"]["found"]) or bool(python_info["found"])
+    full_validation_ready = minimal_run_ready and all(
+        [
+            tools["soffice"]["found"],
+            tools["pdftoppm"]["found"],
+            fontconfig_ready,
+        ]
     )
 
     blockers: list[str] = []
@@ -292,22 +262,22 @@ def build_summary(require_full_validation: bool) -> dict:
             f"Python {python_info['version']} is too old. Need >= {MIN_PYTHON[0]}.{MIN_PYTHON[1]}."
         )
     elif not python_info["modules_ok"]:
-        blockers.append("Python dependencies are incomplete. Run `python -m pip install -r requirements.txt`.")
+        warnings.append("Python dependencies are not installed yet. They will be bootstrapped automatically on first run.")
 
     if not node_info["found"]:
         blockers.append("Node.js runtime not found.")
     elif not node_info["version_ok"]:
         blockers.append(f"Node.js {node_info['version']} is too old. Need >= {MIN_NODE_MAJOR}.")
+    elif not node_info.get("npm", {}).get("found"):
+        blockers.append("npm not found. It is required for the plugin to bootstrap Node dependencies.")
     elif not node_info["modules_ok"]:
-        blockers.append("Node dependencies are incomplete. Run `npm install` in `skill/academic-ppt`.")
+        warnings.append("Node dependencies are not installed yet. They will be bootstrapped automatically on first run.")
 
-    for name in ("soffice", "pdftoppm", "fc-list"):
+    for name in ("soffice", "pdftoppm"):
         if not tools[name]["found"]:
-            warnings.append(
-                f"{tools[name]['name']} is missing. Full validation is not ready."
-            )
-    if not tools["drawio"]["found"]:
-        warnings.append("draw.io / diagrams.net is missing. Diagram PNG export will be unavailable.")
+            warnings.append(f"{tools[name]['name']} is missing. It will be bootstrapped when full validation runs.")
+    if not tools["fc-list"]["found"]:
+        warnings.append("fontconfig / fc-list is missing. Font checks will use the bundled Python fontTools fallback.")
 
     if require_full_validation and not full_validation_ready:
         blockers.append("Full validation prerequisites are incomplete.")
@@ -316,7 +286,7 @@ def build_summary(require_full_validation: bool) -> dict:
         "python": python_info,
         "node": node_info,
         "tools": tools,
-        "minimal_run_ready": minimal_ready,
+        "minimal_run_ready": minimal_run_ready,
         "full_validation_ready": full_validation_ready,
         "require_full_validation": require_full_validation,
         "blockers": blockers,
@@ -331,63 +301,48 @@ def print_human_summary(summary: dict) -> None:
 
     print("Academic PPT Doctor")
     print("===================")
-    print(f"最小运行环境: {'就绪' if summary['minimal_run_ready'] else '未就绪'}")
-    print(f"完整验证环境: {'就绪' if summary['full_validation_ready'] else '未就绪'}")
+    print(f"Minimal run ready: {'yes' if summary['minimal_run_ready'] else 'no'}")
+    print(f"Full validation ready: {'yes' if summary['full_validation_ready'] else 'no'}")
     print("")
 
     print("Python")
-    print(f"- 路径: {python_info.get('path')}")
-    print(f"- 来源: {python_info.get('source')}")
-    print(f"- 版本: {python_info.get('version')}")
-    print(
-        f"- 依赖: {'完整' if python_info.get('modules_ok') else '缺失'}"
-    )
+    print(f"- Path: {python_info.get('path')}")
+    print(f"- Source: {python_info.get('source')}")
+    print(f"- Version: {python_info.get('version')}")
+    print(f"- Dependencies installed: {'yes' if python_info.get('modules_ok') else 'no'}")
 
     print("Node.js")
-    print(f"- 路径: {node_info.get('path')}")
-    print(f"- 来源: {node_info.get('source')}")
-    print(f"- 版本: {node_info.get('version')}")
-    print(
-        f"- 依赖: {'完整' if node_info.get('modules_ok') else '缺失'}"
-    )
+    print(f"- Path: {node_info.get('path')}")
+    print(f"- Source: {node_info.get('source')}")
+    print(f"- Version: {node_info.get('version')}")
+    print(f"- Dependencies installed: {'yes' if node_info.get('modules_ok') else 'no'}")
     npm_info = node_info.get("npm", {})
-    print(
-        f"- npm: {npm_info.get('path') if npm_info.get('found') else '未找到'}"
-    )
+    print(f"- npm: {npm_info.get('path') if npm_info.get('found') else 'not found'}")
 
-    print("桌面工具")
-    for key in ("soffice", "pdftoppm", "fc-list", "drawio"):
+    print("Desktop tools")
+    for key in ("soffice", "pdftoppm", "fc-list"):
         tool = tools[key]
-        readiness = "已找到" if tool["found"] else "未找到"
-        print(f"- {tool['name']}: {readiness}")
+        print(f"- {tool['name']}: {'found' if tool['found'] else 'missing'}")
         if tool["path"]:
-            print(f"  路径: {tool['path']}")
-        print(f"  说明: {tool['note']}")
+            print(f"  Path: {tool['path']}")
+        print(f"  Note: {tool['note']}")
 
     if summary["blockers"]:
         print("")
-        print("阻塞项")
+        print("Blockers")
         for item in summary["blockers"]:
             print(f"- {item}")
 
     if summary["warnings"]:
         print("")
-        print("提示")
+        print("Warnings")
         for item in summary["warnings"]:
             print(f"- {item}")
 
     print("")
-    print("建议命令")
-    if not python_info.get("modules_ok"):
-        print("- python -m pip install -r requirements.txt")
-    if not node_info.get("modules_ok"):
-        print("- npm install")
-    if not summary["minimal_run_ready"]:
-        print("- 先修复上面的阻塞项，再运行 `python .\\scripts\\run_pipeline.py <materials> --output-dir ..\\..\\work\\run --skip-validate`")
-    elif not summary["full_validation_ready"]:
-        print("- 补齐 LibreOffice / Poppler / fontconfig 后，再运行 `python .\\scripts\\run_pipeline.py <materials> --output-dir ..\\..\\work\\run`")
-    else:
-        print("- 现在可以直接运行完整 pipeline。")
+    print("Recommended next step")
+    print(r"- python .\scripts\run_pipeline.py <materials> --output-dir ..\..\work\run")
+    print("  The plugin will bootstrap missing Python and Node dependencies automatically.")
 
 
 def main() -> int:
@@ -398,7 +353,15 @@ def main() -> int:
         action="store_true",
         help="Return a non-zero exit code unless full validation tools are ready.",
     )
+    parser.add_argument(
+        "--bootstrap-tools",
+        action="store_true",
+        help="Download/extract desktop validation tools into the plugin runtime before checking.",
+    )
     args = parser.parse_args()
+
+    if args.bootstrap_tools or args.require_full_validation:
+        bootstrap_tools(["libreoffice", "poppler", "fontconfig"], allow_fallback=True)
 
     summary = build_summary(require_full_validation=args.require_full_validation)
     if args.json:
@@ -406,9 +369,7 @@ def main() -> int:
     else:
         print_human_summary(summary)
 
-    if summary["blockers"]:
-        return 1
-    return 0
+    return 1 if summary["blockers"] else 0
 
 
 if __name__ == "__main__":

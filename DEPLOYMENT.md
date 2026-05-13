@@ -1,6 +1,6 @@
 # Deployment Guide
 
-[中文部署文档](DEPLOYMENT.zh-CN.md)
+[Chinese Deployment Guide](DEPLOYMENT.zh-CN.md)
 
 This document is the deployment contract for both humans and agents.
 
@@ -15,9 +15,9 @@ Use it when the goal is to:
 | Mode | What you get | Required tools |
 | --- | --- | --- |
 | Minimal run | Build the deck without full validation | Python, Node.js |
-| Full validation | Build and validate rendering, images, and fonts | Python, Node.js, LibreOffice, Poppler, fontconfig |
+| Full validation | Build and validate rendering, images, and fonts | Python, Node.js; LibreOffice/Poppler bootstrap where supported; fontconfig or Python font fallback |
 
-`draw.io` / `diagrams.net` desktop is optional. It is only needed when exporting `.drawio` files to PNG.
+Python and Node dependencies are bootstrapped automatically by the plugin on first run. Full validation can also bootstrap desktop validation tools into `skill/academic-ppt/.runtime/tools`.
 
 ## Prerequisites Matrix
 
@@ -25,10 +25,9 @@ Use it when the goal is to:
 | --- | --- | --- | --- |
 | Python 3.11+ | Required | Required | Runs normalization, planning, validation, and helper scripts |
 | Node.js 18+ | Required | Required | Builds the editable PowerPoint deck |
-| LibreOffice (`soffice`) | Optional | Required | Converts legacy `.doc` files and renders PPT/PPTX through headless export |
-| Poppler (`pdftoppm`) | Optional | Required | Rasterizes PDF output into preview images |
-| fontconfig (`fc-list`) | Optional | Required | Detects missing or substituted fonts during validation |
-| draw.io / diagrams.net | Optional | Optional | Exports `.drawio` diagrams to PNG |
+| LibreOffice (`soffice`) | Optional | Auto-bootstrap where supported | Converts legacy `.doc` files and renders PPT/PPTX through headless export |
+| Poppler (`pdftoppm`) | Optional | Auto-bootstrap where supported | Rasterizes PDF output into preview images |
+| fontconfig (`fc-list`) | Optional | Optional | Improves font alias detection; Python `fontTools` fallback is bundled |
 
 ## Deterministic Deployment Steps
 
@@ -36,46 +35,28 @@ Use it when the goal is to:
 
 ```powershell
 git clone https://github.com/SHALINS428/Academic-PPT-Skill.git
-cd Academic-PPT-Skill\skill\academic-ppt
+cd Academic-PPT-Skill
 ```
 
-### 2. Install Python dependencies
+### 2. Run the environment self-check
 
 ```powershell
-python -m pip install -r requirements.txt
-```
-
-### 3. Install Node dependencies
-
-```powershell
-npm install
-```
-
-### 4. Run the environment self-check
-
-```powershell
-npm run doctor
+python .\skill\academic-ppt\scripts\doctor.py
 ```
 
 Interpret the result this way:
 
-- `最小运行环境: 就绪` means the repository can build a deck
-- `完整验证环境: 就绪` means the repository can also run full validation
-- if only the first line is ready, use `--skip-validate` for the first run
+- `Minimal run ready: yes` means the repository can build a deck.
+- `Full validation ready: yes` means the repository can also run full validation.
+- If full validation is not ready, use `--skip-validate` for the first run.
 
 For agent-driven setup, use the machine-readable check:
 
 ```powershell
-python .\scripts\doctor.py --json
+python .\skill\academic-ppt\scripts\doctor.py --json
 ```
 
-Agents should interpret the JSON this way:
-
-- `minimal_run_ready: true` means deck generation can proceed
-- `full_validation_ready: true` means full validation can proceed
-- `blockers` lists the missing setup steps
-
-### 5. Prepare a local materials folder
+### 3. Prepare a local materials folder
 
 Example:
 
@@ -88,27 +69,21 @@ D:\thesis-materials\
 `- previous_slides.pptx
 ```
 
-### 6. Run the pipeline
+### 4. Run the pipeline
 
 Minimal run:
 
 ```powershell
-python .\scripts\run_pipeline.py "D:\thesis-materials" --output-dir ..\..\work\run --skip-validate
+python .\skill\academic-ppt\scripts\run_pipeline.py "D:\thesis-materials" --output-dir .\work\run --skip-validate
 ```
 
 Full run:
 
 ```powershell
-python .\scripts\run_pipeline.py "D:\thesis-materials" --output-dir ..\..\work\run
+python .\skill\academic-ppt\scripts\run_pipeline.py "D:\thesis-materials" --output-dir .\work\run
 ```
 
-Full run with starter `.drawio` files:
-
-```powershell
-python .\scripts\run_pipeline.py "D:\thesis-materials" --output-dir ..\..\work\run --materialize-diagrams
-```
-
-### 7. Verify the expected outputs
+### 5. Verify the expected outputs
 
 After a successful run, check:
 
@@ -143,27 +118,20 @@ python --version
 node --version
 ```
 
-### Install full validation tools
+### Bootstrap full validation tools
 
-Install these only if you want complete validation:
+The plugin downloads supported desktop tools into `skill/academic-ppt/.runtime/tools` when full validation or legacy `.doc` conversion needs them.
 
-- LibreOffice
-- Poppler
-- fontconfig / `fc-list`
-
-Verify:
+Verify or prefetch them explicitly:
 
 ```powershell
+python .\skill\academic-ppt\scripts\doctor.py --bootstrap-tools
 where.exe soffice
 where.exe pdftoppm
 where.exe fc-list
-where.exe draw.io
 ```
 
-Notes:
-
-- the first three commands should resolve for full validation
-- `where.exe draw.io` may fail without blocking the main workflow
+`fc-list` may remain unavailable on Windows. That is acceptable because font checks fall back to the bundled Python `fontTools` path.
 
 ## Environment Overrides
 
@@ -177,29 +145,28 @@ $env:ACADEMIC_PPT_NODE = "C:\path\to\node.exe"
 $env:SOFFICE_EXECUTABLE = "C:\path\to\soffice.exe"
 $env:PDFTOPPM_EXECUTABLE = "C:\path\to\pdftoppm.exe"
 $env:FC_LIST_EXECUTABLE = "C:\path\to\fc-list.exe"
-$env:DRAWIO_EXECUTABLE = "C:\path\to\draw.io.exe"
-$env:DIAGRAMS_NET_EXECUTABLE = "C:\path\to\diagrams.net.exe"
 ```
 
 Use overrides only when:
 
 - the tool is installed but not on `PATH`
-- the machine has multiple versions and the skill must use a specific one
+- the machine has multiple versions and the plugin must use a specific one
 
 ## Self-Check Commands
 
 ```powershell
-python .\scripts\doctor.py
-python .\scripts\doctor.py --json
-npm run doctor
-npm run doctor:full
+python .\skill\academic-ppt\scripts\doctor.py
+python .\skill\academic-ppt\scripts\doctor.py --json
+python .\skill\academic-ppt\scripts\doctor.py --require-full-validation
+python .\skill\academic-ppt\scripts\bootstrap_runtime.py --tools
 ```
 
 Use them this way:
 
 - `doctor`: check whether the repository can build a deck
 - `doctor --json`: provide machine-readable readiness for agents and automation
-- `doctor:full`: fail unless full validation prerequisites are ready
+- `doctor --require-full-validation`: bootstrap supported desktop tools and fail unless full validation prerequisites are ready
+- `bootstrap_runtime --tools`: prefetch Python, Node, and supported desktop validation dependencies
 
 ## Troubleshooting
 
@@ -211,17 +178,20 @@ Use them this way:
 
 `soffice` is not found:
 
-- install LibreOffice or add it to `PATH`
+- run `doctor.py --bootstrap-tools`
+- if the automatic download is blocked, install LibreOffice or add it to `PATH`
 - otherwise set `SOFFICE_EXECUTABLE`
 
 `pdftoppm` is not found:
 
-- install Poppler or add it to `PATH`
+- run `doctor.py --bootstrap-tools`
+- if the automatic download is blocked, install Poppler or add it to `PATH`
 - otherwise set `PDFTOPPM_EXECUTABLE`
 
 `fc-list` is not found:
 
-- install fontconfig or add it to `PATH`
+- this is not a blocker on Windows because font checks use the Python fallback
+- install fontconfig only if you need fontconfig-native alias behavior
 - otherwise set `FC_LIST_EXECUTABLE`
 
 Legacy `.doc` conversion fails:
@@ -232,4 +202,4 @@ Legacy `.doc` conversion fails:
 You only want to confirm deck generation first:
 
 - run the pipeline with `--skip-validate`
-- install LibreOffice, Poppler, and fontconfig later
+- let full validation bootstrap LibreOffice and Poppler later

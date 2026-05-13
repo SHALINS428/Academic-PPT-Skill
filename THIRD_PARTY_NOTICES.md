@@ -34,8 +34,17 @@ Additional third-party runtime dependencies are declared through:
 
 - `skill/academic-ppt/package.json`
 - `skill/academic-ppt/requirements.txt`
+- `skill/academic-ppt/assets/tool_manifest.json`
 
 Their licenses remain the property of their respective authors and projects.
+
+## On-Demand Desktop Tools
+
+The plugin may download desktop validation tools into `skill/academic-ppt/.runtime/tools` on first use. These binaries are not committed to this repository.
+
+- LibreOffice: MPL-2.0 / LGPL-3.0-or-later, used for legacy `.doc` conversion and headless Office export.
+- Poppler for Windows: GPL-2.0-or-later, used for PDF rasterization during slide preview validation.
+- fontconfig: used when available for font alias discovery; when unavailable, the plugin uses the Python `fontTools` package to scan local font files.
 
 ## Maintainer Note
 

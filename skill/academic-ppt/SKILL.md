@@ -32,13 +32,9 @@ Default robustness contract:
 - convert legacy `.doc` sources through LibreOffice when needed before normalization
 - infer a defense deck structure from thesis sections instead of relying on fixed generic placeholders
 - attach thesis figures or screenshots to suitable content pages when the source material already contains them
-- fall back to diagram tasks only when no suitable source visual can be matched
+- fall back to reusable local chart or layout assets when no suitable source visual can be matched
 - enforce page-density guardrails so content pages stay concise enough for defense-room projection
 - enforce a visible editable text floor of `18px` (about `13.5pt`) for readability
-
-When a page needs a process, architecture, or pipeline figure that should remain editable, also deliver:
-- `.drawio`
-- matching `PNG`
 
 Default Python runtime:
 - use `ACADEMIC_PPT_PYTHON` if you need to pin a specific interpreter
@@ -75,7 +71,7 @@ Default planning behavior:
 - distinguish cover metadata, background, problem, method, system architecture, student work, experiment, result, innovation, and limitation sections
 - assign canonical defense slide titles instead of copying raw thesis headings directly
 - prefer thesis-native figures, screenshots, and workflow images on content pages when they match the current slide purpose
-- use diagram tasks only as a fallback when the thesis lacks an editable or reusable visual for a needed page
+- use bundled reusable visual assets only as a fallback when the thesis lacks a suitable figure for a needed page
 - keep chapter divider pages separate from content pages; divider pages should not receive extra top theme labels
 - compress slide text before rendering so the generator can preserve whitespace and stronger typography
 
@@ -88,7 +84,7 @@ Default planning behavior:
 - `scripts/normalize_sources.py`
   Convert supported source files into a single `normalized_brief.md`.
 - `scripts/plan_deck.py`
-  Extract a defense-oriented slide plan, source trace, and diagram task list from normalized materials.
+  Extract a defense-oriented slide plan and source trace from normalized materials.
 - `scripts/scaffold_deck_workspace.py`
   Create a deck workspace with bundled PptxGenJS helpers, validation scripts, and optional plan artifacts.
 - `scripts/validate_deck.py`
@@ -96,13 +92,13 @@ Default planning behavior:
 - `scripts/doctor.py`
   Check whether the current machine is ready for minimal generation or full validation.
 - `scripts/run_pipeline.py`
-  Orchestrate normalization, planning, workspace scaffold, optional drawio starters, build, and validation.
+  Orchestrate bootstrap, normalization, planning, workspace scaffold, build, and validation.
+- `scripts/bootstrap_runtime.py`
+  Install local Python and Node dependencies automatically for first-run use; pass `--tools` to prefetch desktop validation tools where supported.
+- `scripts/tools_bootstrap.py`
+  Download and expose LibreOffice/Poppler into `.runtime/tools` on supported platforms, with a Python fontTools fallback when `fc-list` is unavailable.
 - `scripts/python_runtime.py`
-  Resolve the default Python interpreter for this skill and prepare tool discovery from environment variables plus system `PATH`.
-- `scripts/new-drawio-figure.ps1`
-  Copied unchanged from the drawio skill to create starter `.drawio` files.
-- `scripts/export-drawio-png.ps1`
-  Copied unchanged from the drawio skill to export PNG previews from `.drawio`.
+  Resolve the default Python interpreter and prepare tool discovery from environment variables, system `PATH`, and `.runtime/tools`.
 - `scripts/vendor_source_to_md/`
   Bundled source converters copied from `ppt-master` for local ingestion.
 
@@ -127,10 +123,6 @@ Read these only when needed:
   End-to-end workflow and validation commands.
 - `references/pptxgenjs-helpers.md`
   Helper API summary copied from the local slides skill.
-- `references/figure-types.md`
-  Copied unchanged from the drawio skill; use when deciding architecture vs roadmap vs workflow figures.
-- `references/academic-diagram-style.md`
-  Copied unchanged from the drawio skill; use when a page needs an editable academic diagram.
 
 ### Assets
 
@@ -201,7 +193,7 @@ Produce a `deck_plan.md` that identifies:
 - per-slide title and main takeaway
 - per-slide design hint when a stronger composition is needed
 - where innovation is proved
-- where figures or diagrams are needed
+- where figures are needed
 
 Preferred wrapper:
 - `scripts/plan_deck.py`
@@ -245,19 +237,10 @@ Requirements:
 - preserve traceability back to sources
 
 ### 7. Add Diagrams When Needed
-
-If the deck needs:
-- architecture diagrams
-- technical roadmaps
-- method pipelines
-- process flows
-
-Use the `drawio` path and deliver editable diagram sources plus matching PNGs.
-
-Preferred wrappers:
-- `scripts/run_pipeline.py --materialize-diagrams`
-- `scripts/new-drawio-figure.ps1`
-- `scripts/export-drawio-png.ps1`
+If the deck needs a process, architecture, or pipeline visual, stay inside this plugin's scope:
+- prefer thesis-native figures or screenshots when available
+- otherwise compose the page with bundled chart and layout assets inside the PPT itself
+- do not delegate to external diagram-editing workflows from this plugin
 
 ### 8. Validate Before Delivery
 

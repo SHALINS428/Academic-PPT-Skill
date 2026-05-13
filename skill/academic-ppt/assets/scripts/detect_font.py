@@ -72,6 +72,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import xml.etree.ElementTree as ET
 from functools import lru_cache
@@ -99,6 +100,8 @@ STYLE_TOKENS = [
     "medium",
 ]
 
+FONT_SUFFIXES = {".ttf", ".ttc", ".otf", ".otc"}
+
 
 def soffice_user_install_arg(profile_dir: str) -> str:
     """Build a cross-platform UserInstallation argument for LibreOffice."""
@@ -122,17 +125,23 @@ def _or_dummy(node: ET.Element | None) -> ET.Element:
 
 @lru_cache(maxsize=1)
 def _build_fc_synonym_map() -> dict[str, set[str]]:
-    """Build synonym map from fontconfig; raise on failures; memoized (size=1)."""
-    proc = subprocess.run(
-        [
-            "fc-list",
-            "--format",
-            "%{family}\t%{fullname}\t%{postscriptname}\n",
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    """Build an installed-font synonym map from fontconfig or a Python filesystem fallback."""
+    fc_list = shutil.which("fc-list") or shutil.which("fc-list.exe")
+    if not fc_list:
+        return _build_filesystem_font_synonym_map()
+    try:
+        proc = subprocess.run(
+            [
+                fc_list,
+                "--format",
+                "%{family}\t%{fullname}\t%{postscriptname}\n",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return _build_filesystem_font_synonym_map()
     syn: dict[str, set[str]] = {}
     for line in (proc.stdout or "").splitlines():
         parts = line.split("\t")
@@ -149,6 +158,75 @@ def _build_fc_synonym_map() -> dict[str, set[str]]:
         for name in list(names):
             bucket = syn.setdefault(name, set())
             bucket.update(names)
+    return syn or _build_filesystem_font_synonym_map()
+
+
+def _font_search_dirs() -> list[Path]:
+    candidates: list[Path] = []
+    if os.name == "nt":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        candidates.append(Path(windir) / "Fonts")
+        local_appdata = os.environ.get("LOCALAPPDATA")
+        if local_appdata:
+            candidates.append(Path(local_appdata) / "Microsoft" / "Windows" / "Fonts")
+    elif sys.platform == "darwin":
+        candidates.extend(
+            [
+                Path("/System/Library/Fonts"),
+                Path("/Library/Fonts"),
+                Path.home() / "Library" / "Fonts",
+            ]
+        )
+    else:
+        candidates.extend(
+            [
+                Path("/usr/share/fonts"),
+                Path("/usr/local/share/fonts"),
+                Path.home() / ".fonts",
+                Path.home() / ".local" / "share" / "fonts",
+            ]
+        )
+    return [path for path in candidates if path.exists()]
+
+
+def _font_names_from_file(path: Path) -> set[str]:
+    names: set[str] = set()
+    try:
+        from fontTools.ttLib import TTFont
+
+        font = TTFont(str(path), lazy=True, fontNumber=0)
+        for record in font["name"].names:
+            if record.nameID not in {1, 2, 4, 6, 16, 17}:
+                continue
+            try:
+                value = record.toUnicode().strip()
+            except UnicodeDecodeError:
+                continue
+            if value:
+                names.add(value)
+        font.close()
+    except Exception:
+        names.add(path.stem)
+    return names
+
+
+def _build_filesystem_font_synonym_map() -> dict[str, set[str]]:
+    syn: dict[str, set[str]] = {}
+    for font_dir in _font_search_dirs():
+        for path in font_dir.rglob("*"):
+            if not path.is_file() or path.suffix.lower() not in FONT_SUFFIXES:
+                continue
+            names: set[str] = set()
+            for value in _font_names_from_file(path):
+                norm = normalize_font_family_name(value)
+                if norm:
+                    names.add(norm)
+                    names.add(norm.replace(" ", ""))
+            if not names:
+                continue
+            for name in list(names):
+                bucket = syn.setdefault(name, set())
+                bucket.update(names)
     return syn
 
 

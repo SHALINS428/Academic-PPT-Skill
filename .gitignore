@@ -17,6 +17,7 @@ tmp/
 # Office / render scratch
 .validation_tmp/
 rendered/
+skill/academic-ppt/.runtime/
 
 # OS / editor
 .DS_Store

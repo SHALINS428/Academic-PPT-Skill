@@ -8,6 +8,8 @@ import json
 import shutil
 from pathlib import Path
 
+from python_runtime import NODE_MODULES_DIR
+
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 ASSETS_DIR = SKILL_DIR / "assets"
@@ -58,7 +60,7 @@ def copy_tree(src: Path, dst: Path) -> None:
 
 def copy_plan_artifacts(plan_json: Path, output_dir: Path) -> None:
     shutil.copy2(plan_json, output_dir / "deck_plan.json")
-    for name in ("deck_plan.md", "source_trace.json", "diagram_tasks.json", "diagram_tasks.md"):
+    for name in ("deck_plan.md", "source_trace.json"):
         sibling = plan_json.with_name(name)
         if sibling.exists():
             shutil.copy2(sibling, output_dir / name)
@@ -69,7 +71,7 @@ def render_build_template() -> str:
     template = template_path.read_text(encoding="utf-8")
     return template.replace(
         "__SKILL_NODE_MODULES__",
-        json.dumps(str((SKILL_DIR / "node_modules").resolve())),
+        json.dumps(str(NODE_MODULES_DIR.resolve())),
     )
 
 

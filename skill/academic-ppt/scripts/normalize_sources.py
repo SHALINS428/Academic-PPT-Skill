@@ -12,6 +12,8 @@ from pathlib import Path
 
 from build_source_manifest import build_manifest
 from python_runtime import build_skill_environment, get_path_value, resolve_python_executable
+from runtime_bootstrap import ensure_python_runtime
+from tools_bootstrap import bootstrap_tools
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -48,6 +50,7 @@ def run_converter(converter: Path, source_path: Path, output_path: Path) -> None
 
 def convert_legacy_word(source_path: Path, bridge_dir: Path) -> Path:
     bridge_dir.mkdir(parents=True, exist_ok=True)
+    bootstrap_tools(["libreoffice"], allow_fallback=False)
     env = build_skill_environment()
     soffice = shutil.which("soffice", path=get_path_value(env))
     if not soffice:
@@ -122,6 +125,10 @@ def main() -> int:
     parser.add_argument("inputs", nargs="+", help="File(s) or folder(s) to normalize")
     parser.add_argument("--output-dir", required=True, help="Directory for normalized outputs")
     args = parser.parse_args()
+
+    python_runtime = ensure_python_runtime()
+    if not python_runtime["ok"]:
+        raise RuntimeError("Failed to bootstrap Python dependencies for academic-ppt normalization.")
 
     input_paths = [Path(value).expanduser().resolve() for value in args.inputs]
     output_dir = Path(args.output_dir).expanduser().resolve()

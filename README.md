@@ -1,8 +1,8 @@
-# Academic PPT Skill
+# Academic PPT Plugin
 
-[中文说明](README.zh-CN.md)
+[Chinese README](README.zh-CN.md)
 
-Academic PPT Skill is an open-source skill bundle for turning local thesis materials into rigorous, concise, editable academic defense presentations.
+Academic PPT Plugin is an open-source Codex plugin for turning local thesis materials into rigorous, concise, editable academic defense presentations.
 
 It is designed for:
 
@@ -46,6 +46,7 @@ Inputs may be:
 - preference for thesis-native figures and screenshots when available
 - validation before delivery
 - explicit traceability back to source files
+- first-run local dependency bootstrap for Python, Node, and validation tool packages
 
 ## Documentation Map
 
@@ -55,7 +56,7 @@ If you want:
 - Chinese project overview: [README.zh-CN.md](README.zh-CN.md)
 - deployment guide in English: [DEPLOYMENT.md](DEPLOYMENT.md)
 - deployment guide in Chinese: [DEPLOYMENT.zh-CN.md](DEPLOYMENT.zh-CN.md)
-- skill behavior and internal workflow: [skill/academic-ppt/SKILL.md](skill/academic-ppt/SKILL.md)
+- plugin behavior and internal workflow: [skill/academic-ppt/SKILL.md](skill/academic-ppt/SKILL.md)
 - command-level workflow reference: [skill/academic-ppt/references/workflow.md](skill/academic-ppt/references/workflow.md)
 
 ## Deployment Summary
@@ -65,9 +66,9 @@ There are two practical deployment targets:
 | Mode | What you get | Required tools |
 | --- | --- | --- |
 | Minimal run | Build the deck without full validation | Python, Node.js |
-| Full validation | Build and validate rendering, images, and fonts | Python, Node.js, LibreOffice, Poppler, fontconfig |
+| Full validation | Build and validate rendering, images, and fonts | Python, Node.js; LibreOffice and Poppler are bootstrapped on demand where supported; fontconfig uses `fc-list` or Python fallback |
 
-`draw.io` / `diagrams.net` desktop is optional. It is only needed when exporting `.drawio` files to PNG.
+Python and Node dependencies are bootstrapped automatically by the plugin on first run. Full validation also bootstraps desktop validation tools into `skill/academic-ppt/.runtime/tools` when the platform manifest supports them.
 
 For full setup instructions, use:
 
@@ -78,6 +79,8 @@ For full setup instructions, use:
 
 ```text
 academic-ppt-skills/
+|- .codex-plugin/
+|  `- plugin.json
 |- README.md
 |- README.zh-CN.md
 |- DEPLOYMENT.md
