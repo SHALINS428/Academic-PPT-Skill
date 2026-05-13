@@ -8,15 +8,18 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from python_runtime import build_skill_environment, resolve_python_executable
+from python_runtime import (
+    NODE_ENV_VAR_NAME,
+    build_skill_environment,
+    get_path_value,
+    resolve_python_executable,
+)
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-NODE_CANDIDATES = ["node", r"D:\shalins\study\nodejs\node.exe"]
 LOCAL_NODE_MODULES = SCRIPT_DIR.parent / "node_modules"
 
 
@@ -53,7 +56,17 @@ def run_command(command: list[str], cwd: Path | None = None) -> dict:
 
 
 def choose_node() -> str | None:
-    for candidate in NODE_CANDIDATES:
+    env = build_skill_environment()
+    candidates: list[str] = []
+    override = env.get(NODE_ENV_VAR_NAME, "").strip()
+    if override:
+        candidates.append(str(Path(override).expanduser()))
+    for command_name in ("node", "node.exe"):
+        discovered = shutil.which(command_name, path=get_path_value(env))
+        if discovered and discovered not in candidates:
+            candidates.append(discovered)
+
+    for candidate in candidates:
         try:
             result = subprocess.run(
                 [candidate, "--version"],
@@ -61,6 +74,7 @@ def choose_node() -> str | None:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                env=env,
             )
         except FileNotFoundError:
             continue

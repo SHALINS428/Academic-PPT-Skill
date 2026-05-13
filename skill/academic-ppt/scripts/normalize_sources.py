@@ -5,14 +5,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
 from build_source_manifest import build_manifest
-from python_runtime import build_skill_environment, resolve_python_executable
+from python_runtime import build_skill_environment, get_path_value, resolve_python_executable
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -49,7 +48,8 @@ def run_converter(converter: Path, source_path: Path, output_path: Path) -> None
 
 def convert_legacy_word(source_path: Path, bridge_dir: Path) -> Path:
     bridge_dir.mkdir(parents=True, exist_ok=True)
-    soffice = shutil.which("soffice", path=build_skill_environment().get("PATH"))
+    env = build_skill_environment()
+    soffice = shutil.which("soffice", path=get_path_value(env))
     if not soffice:
         raise FileNotFoundError(
             "LibreOffice `soffice` was not found. It is required to convert `.doc` to `.docx`."
@@ -63,7 +63,7 @@ def convert_legacy_word(source_path: Path, bridge_dir: Path) -> Path:
         str(bridge_dir),
         str(source_path),
     ]
-    subprocess.run(command, check=True, capture_output=True, text=True, env=build_skill_environment())
+    subprocess.run(command, check=True, capture_output=True, text=True, env=env)
     converted = bridge_dir / f"{source_path.stem}.docx"
     if not converted.exists():
         raise FileNotFoundError(f"LibreOffice did not produce the expected DOCX bridge file: {converted}")

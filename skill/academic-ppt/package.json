@@ -4,6 +4,10 @@
   "private": true,
   "description": "Dependencies for the academic-ppt Codex skill",
   "license": "MIT",
+  "scripts": {
+    "doctor": "python scripts/doctor.py",
+    "doctor:full": "python scripts/doctor.py --require-full-validation"
+  },
   "dependencies": {
     "fontkit": "2.0.4",
     "linebreak": "1.1.0",

@@ -16,17 +16,23 @@
 
 ## Example Commands
 
-Default Python runtime for this skill:
+Environment self-check:
 
 ```powershell
-$env:ACADEMIC_PPT_PYTHON = 'D:\shalins\study\minconda\conda_envs\twibot\python.exe'
+python scripts\doctor.py
 ```
 
-If you do not set this variable, the skill still prefers that same `twibot` interpreter automatically.
+Python runtime for this skill:
+
+```powershell
+$env:ACADEMIC_PPT_PYTHON = 'D:\path\to\python.exe'
+```
+
+If you do not set this variable, the skill reuses the current Python interpreter automatically.
 
 ## External Tool Checklist
 
-For the core build path, no extra desktop tool is required beyond Node.js and the pinned Python runtime.
+For the core build path, no extra desktop tool is required beyond Node.js and Python.
 
 For full validation and optional exports, install these tools manually:
 
@@ -65,37 +71,37 @@ $env:DIAGRAMS_NET_EXECUTABLE = 'D:\path\to\diagrams.net.exe'
 After tool installation, rerun:
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts\validate_deck.py work\deck\academic-defense.pptx
+python scripts\validate_deck.py work\deck\academic-defense.pptx
 ```
 
 ### Build Source Manifest
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts/build_source_manifest.py /path/to/materials --output work/source_manifest.json
+python scripts\build_source_manifest.py /path/to/materials --output work/source_manifest.json
 ```
 
 ### Normalize Sources
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts/normalize_sources.py /path/to/materials --output-dir work/intake
+python scripts\normalize_sources.py /path/to/materials --output-dir work/intake
 ```
 
 ### Scaffold Deck Workspace
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts/scaffold_deck_workspace.py work/deck --title "Thesis Defense"
+python scripts\scaffold_deck_workspace.py work/deck --title "Thesis Defense"
 ```
 
 ### Plan The Deck
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts/plan_deck.py work/intake/normalized_brief.md --manifest work/intake/source_manifest.json --output-dir work/planning
+python scripts\plan_deck.py work/intake/normalized_brief.md --manifest work/intake/source_manifest.json --output-dir work/planning
 ```
 
 ### One-Command Pipeline
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts/run_pipeline.py /path/to/materials --output-dir work/run
+python scripts\run_pipeline.py /path/to/materials --output-dir work/run
 ```
 
 ### Build The Deck
@@ -116,25 +122,25 @@ Current generator behavior:
 ### Render The Deck
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON work/deck/scripts/render_slides.py work/deck/academic-defense.pptx --output_dir work/deck/rendered
+python work/deck/scripts/render_slides.py work/deck/academic-defense.pptx --output_dir work/deck/rendered
 ```
 
 ### Overflow Check
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON work/deck/scripts/slides_test.py work/deck/academic-defense.pptx
+python work/deck/scripts/slides_test.py work/deck/academic-defense.pptx
 ```
 
 ### Font Check
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON work/deck/scripts/detect_font.py work/deck/academic-defense.pptx --json
+python work/deck/scripts/detect_font.py work/deck/academic-defense.pptx --json
 ```
 
 ### Validation Wrapper
 
 ```powershell
-& $env:ACADEMIC_PPT_PYTHON scripts/validate_deck.py work/deck/academic-defense.pptx
+python scripts\validate_deck.py work/deck/academic-defense.pptx
 ```
 
 ## Validation Gate

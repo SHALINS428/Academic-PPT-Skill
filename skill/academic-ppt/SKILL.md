@@ -41,8 +41,8 @@ When a page needs a process, architecture, or pipeline figure that should remain
 - matching `PNG`
 
 Default Python runtime:
-- `D:\shalins\study\minconda\conda_envs\twibot\python.exe`
-- Override only when necessary by setting `ACADEMIC_PPT_PYTHON`
+- use `ACADEMIC_PPT_PYTHON` if you need to pin a specific interpreter
+- otherwise reuse the current Python interpreter automatically
 
 ## Non-Negotiable Content Rules
 
@@ -93,10 +93,12 @@ Default planning behavior:
   Create a deck workspace with bundled PptxGenJS helpers, validation scripts, and optional plan artifacts.
 - `scripts/validate_deck.py`
   Run rendering, overflow, montage, and font checks against a generated deck.
+- `scripts/doctor.py`
+  Check whether the current machine is ready for minimal generation or full validation.
 - `scripts/run_pipeline.py`
   Orchestrate normalization, planning, workspace scaffold, optional drawio starters, build, and validation.
 - `scripts/python_runtime.py`
-  Resolve the default Python interpreter for this skill. The skill prefers the `twibot` Conda environment.
+  Resolve the default Python interpreter for this skill and prepare tool discovery from environment variables plus system `PATH`.
 - `scripts/new-drawio-figure.ps1`
   Copied unchanged from the drawio skill to create starter `.drawio` files.
 - `scripts/export-drawio-png.ps1`

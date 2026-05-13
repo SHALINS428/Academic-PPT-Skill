@@ -5,7 +5,7 @@ This folder contains a public example preview generated with the `academic-ppt` 
 ## Source
 
 - Local input used during generation: `TwiBot-20.pdf`
-- Source location on the maintainer machine: `D:\shalins\study\毕业论文\文献\twibot\TwiBot-20.pdf`
+- Source path is intentionally omitted from this public repository.
 - The original paper PDF is not included in this repository.
 
 ## Included Artifacts
