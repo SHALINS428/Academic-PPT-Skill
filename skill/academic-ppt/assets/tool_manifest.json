@@ -9,7 +9,7 @@
           "source_url": "https://www.libreoffice.org/",
           "download_url": "https://downloadarchive.documentfoundation.org/libreoffice/old/25.8.4.2/win/x86_64/LibreOffice_25.8.4.2_Win_x86-64.msi",
           "kind": "msi-admin",
-          "sha256": "",
+          "sha256": "b2b23d91bda5ad6e97b38008b082060a55d2a3c7c269b2c0e78daca865133d48",
           "executables": [
             "soffice.com",
             "soffice.exe",
@@ -30,7 +30,7 @@
           "source_url": "https://github.com/oschwartz10612/poppler-windows",
           "download_url": "https://github.com/oschwartz10612/poppler-windows/releases/download/v26.02.0-0/Release-26.02.0-0.zip",
           "kind": "zip",
-          "sha256": "",
+          "sha256": "993e4a94376ed712fafc7058d724ea0b943d118bbd2305cd9ed55174eb85cda5",
           "executables": [
             "pdftoppm.exe",
             "pdfinfo.exe"
