@@ -1,0 +1,5 @@
+interface:
+  display_name: "Academic PPT"
+  short_description: "Create thesis defense and academic report decks from local files"
+  default_prompt: "Use $academic-ppt to turn these local thesis materials into a rigorous, concise, editable defense PPT that emphasizes the student's own work, innovation points, explained figures, and a clear problem-method-result-conclusion narrative."
+

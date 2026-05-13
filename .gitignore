@@ -1,0 +1,23 @@
+# Node
+skill/academic-ppt/node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local validation / build outputs
+tmp/
+*.pptx
+*.pdf
+*.log
+*.tmp
+
+# Office / render scratch
+.validation_tmp/
+rendered/
+
+# OS / editor
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+mammoth==1.12.0
+numpy==2.4.3
+pdf2image==1.17.0
+Pillow==12.2.0
+PyMuPDF==1.27.2.2
+python-pptx==1.0.2
